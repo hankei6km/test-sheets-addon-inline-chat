@@ -2,11 +2,7 @@
   "name": "clasp",
   "image": "ghcr.io/hankei6km/h6-dev-containers:clasp",
   "runArgs": ["--privileged"],
-  "features": {
-    "ghcr.io/hankei6km/h6-devcontainers-features/prepare-commit-msg-context:1": {
-      "format": "diff"
-    }
-  },
+  "features": {},
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
@@ -20,7 +16,6 @@
     "GDFUSE_SA": "${localEnv:GDFUSE_SA}",
     "BOOTSTRAP_CODE": "${localEnv:BOOTSTRAP_CODE}"
   },
-  "postCreateCommand": "cp /usr/local/share/prepare-commit-msg-context/prepare-commit-msg .git/hooks/prepare-commit-msg",
   "postStartCommand": [
     "/home/vscode/.local/bin/mount-gd.sh",
     "/home/vscode/gdrive"
