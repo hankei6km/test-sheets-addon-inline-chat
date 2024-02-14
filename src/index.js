@@ -19,3 +19,6 @@ function onOpen(e) {
 function doPrompt(msg) {
   return _entry_point_.doPrompt(msg)
 }
+function doPromptMulti(imageUrl, msg) {
+  return _entry_point_.doPromptMulti(imageUrl, msg)
+}

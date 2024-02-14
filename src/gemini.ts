@@ -8,35 +8,20 @@ type CustomBanding = {
   footerRowColor: string | null
 }
 
-function buildPrompt(
-  prompt: string,
-  sheetStat: {
-    name: string
-    activeCell: string
-    activeRanges: string[]
-    customBandings: CustomBanding[]
-    values: string[][]
-  }
-) {
-  const parts = [
-    {
-      text: `Goolge SpreadSheets についての要望または質問に対応してください。`
-    },
-    {
-      text: `## 要望または質問
+function getThumbBase64(imageUrl: string) {
+  const fileId = imageUrl.split('/')[5]
+  const thumb = DriveApp.getFileById(fileId).getThumbnail()
+  return Utilities.base64Encode(thumb.getBytes())
+}
 
-${prompt}}
-`
-    },
-    {
-      text: `## 条件
-
- 要望についてはできるだけ関数呼び出すを使ってシートを更新してください。
- シートの更新が難しい場合や質問の場合はテキストで返答してください。 
-`
-    },
-    {
-      text: `## 知識
+function getActiveSheetStat(sheetStat: {
+  name: string
+  activeCell: string
+  activeRanges: string[]
+  customBandings: CustomBanding[]
+  values: string[][]
+}) {
+  return `## 知識
 
 以下はアクティブシートの状態
 
@@ -65,10 +50,64 @@ ${'```json\n' + JSON.stringify(sheetStat.customBandings) + '\n```'}
 
 ${'```json\n' + JSON.stringify(sheetStat.values) + '\n```'}
 
-
 `
-    }
-  ]
+}
+
+function buildPrompt(
+  imageUrl: string,
+  prompt: string,
+  sheetStat: {
+    name: string
+    activeCell: string
+    activeRanges: string[]
+    customBandings: CustomBanding[]
+    values: string[][]
+  }
+) {
+  const parts =
+    imageUrl === ''
+      ? [
+          {
+            text: `Goolge SpreadSheets についての要望または質問に対応してください。`
+          },
+          {
+            text: `## 要望または質問
+
+${prompt}}
+`
+          },
+          {
+            text: `## 条件
+
+ 要望についてはできるだけ関数呼び出すを使ってシートを更新してください。
+ シートの更新が難しい場合や質問の場合はテキストで返答してください。 
+`
+          },
+          {
+            text: getActiveSheetStat(sheetStat)
+          }
+        ]
+      : [
+          {
+            inline_data: {
+              mime_type: 'image/jpeg',
+              data: getThumbBase64(imageUrl)
+            }
+          },
+          {
+            text: `Goolge SpreadSheets についての要望または質問に対応してください。`
+          },
+          {
+            text: `## 要望または質問
+
+${prompt}}
+`
+          },
+          {
+            text: getActiveSheetStat(sheetStat)
+          }
+        ]
+
   return {
     contents: {
       parts
@@ -98,107 +137,110 @@ ${'```json\n' + JSON.stringify(sheetStat.values) + '\n```'}
         threshold: 'BLOCK_MEDIUM_AND_ABOVE'
       }
     ],
-    tools: [
-      {
-        function_declarations: [
-          {
-            name: 'setValuesOrFormulas',
-            description:
-              'スプレッドシートの指定された範囲へ値または式をセットする。表の作成や更新に使われます。',
-            parameters: {
-              type: 'object',
-              properties: {
-                a1Notation: {
-                  type: 'string',
+    tools:
+      imageUrl === ''
+        ? [
+            {
+              function_declarations: [
+                {
+                  name: 'setValuesOrFormulas',
                   description:
-                    '値または式の二次元配列をセットする範囲を A1 表記で指定する'
-                },
-                valuesOrFormulas: {
-                  type: 'array',
-                  items: { type: 'array', items: { type: 'string' } },
-                  description: `値または式がセットされている二次元配列(string[][])を指定する。
+                    'スプレッドシートの指定された範囲へ値または式をセットする。表の作成や更新に使われます。',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      a1Notation: {
+                        type: 'string',
+                        description:
+                          '値または式の二次元配列をセットする範囲を A1 表記で指定する'
+                      },
+                      valuesOrFormulas: {
+                        type: 'array',
+                        items: { type: 'array', items: { type: 'string' } },
+                        description: `値または式がセットされている二次元配列(string[][])を指定する。
 この二次元配列は Google Apps Script の setValues() または setFormulas() に渡す二次元配列と同じ形式である必要がある。
 例: [["品名", "単価", "個数", "売上"], ["みかん", "100", "10" , "=B2*C2"]]`
-                }
-              },
-              required: ['a1Notation', 'valuesOrFormulas']
-            }
-          },
-          {
-            name: 'insertRowsAfter',
-            description:
-              'スプレッドシートの指定された行位置の後に行を挿入(追加)します。表にデータを挿入(追加)するときに使われます。',
-            parameters: {
-              type: 'object',
-              properties: {
-                afterPosition: {
-                  type: 'number',
+                      }
+                    },
+                    required: ['a1Notation', 'valuesOrFormulas']
+                  }
+                },
+                {
+                  name: 'insertRowsAfter',
                   description:
-                    'この行の後に新しい行を追加する行。１はじまりの行番号です。'
-                },
-                howMany: {
-                  type: 'number',
-                  description: '挿入する行数。省略すると 1 行挿入されます。'
-                },
-                valuesOrFormulas: {
-                  type: 'array',
-                  items: { type: 'array', items: { type: 'string' } },
-                  description: `挿入後に値または式をセットする場合に指定。値または式がセットされている二次元配列(string[][])を指定する。
+                    'スプレッドシートの指定された行位置の後に行を挿入(追加)します。表にデータを挿入(追加)するときに使われます。',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      afterPosition: {
+                        type: 'number',
+                        description:
+                          'この行の後に新しい行を追加する行。１はじまりの行番号です。'
+                      },
+                      howMany: {
+                        type: 'number',
+                        description:
+                          '挿入する行数。省略すると 1 行挿入されます。'
+                      },
+                      valuesOrFormulas: {
+                        type: 'array',
+                        items: { type: 'array', items: { type: 'string' } },
+                        description: `挿入後に値または式をセットする場合に指定。値または式がセットされている二次元配列(string[][])を指定する。
 この二次元配列は Google Apps Script の setValues() または setFormulas() に渡す二次元配列と同じ形式である必要がある。
 例: [["品名", "単価", "個数", "売上"], ["みかん", "100", "10" , "=B2*C2"]]`
-                }
-              },
-              required: ['afterPosition']
-            }
-          },
-          {
-            name: 'setBorder',
-            description: 'レンジの枠線を指定する。',
-            parameters: {
-              type: 'object',
-              properties: {
-                a1Notation: {
-                  type: 'string',
-                  description: 'レンジを A1 表記で指定する'
+                      }
+                    },
+                    required: ['afterPosition']
+                  }
                 },
-                top: {
-                  type: 'boolean',
-                  description:
-                    'レンジの上辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
-                },
-                left: {
-                  type: 'boolean',
-                  description:
-                    'レンジの左辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
-                },
-                bottom: {
-                  type: 'boolean',
-                  description:
-                    'レンジの底辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
-                },
-                right: {
-                  type: 'boolean',
-                  description:
-                    'レンジの右辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
-                },
-                vertical: {
-                  type: 'boolean',
-                  description:
-                    'レンジ内側の縦枠線は true、なしの場合は false、変更しない場合は null です。'
-                },
-                horizontal: {
-                  type: 'boolean',
-                  description:
-                    'レンジ内部の水平枠線は true、なしの場合は false、変更しない場合は null です。'
-                },
-                color: {
-                  type: 'string',
-                  description:
-                    "CSS 表記の色（'#ffffff' や 'white' など）。null はデフォルトの色（黒）を表します。"
-                },
-                style: {
-                  type: 'string',
-                  description: `枠線のスタイル。デフォルトのスタイル（単色）の場合は null。
+                {
+                  name: 'setBorder',
+                  description: 'レンジの枠線を指定する。',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      a1Notation: {
+                        type: 'string',
+                        description: 'レンジを A1 表記で指定する'
+                      },
+                      top: {
+                        type: 'boolean',
+                        description:
+                          'レンジの上辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
+                      },
+                      left: {
+                        type: 'boolean',
+                        description:
+                          'レンジの左辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
+                      },
+                      bottom: {
+                        type: 'boolean',
+                        description:
+                          'レンジの底辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
+                      },
+                      right: {
+                        type: 'boolean',
+                        description:
+                          'レンジの右辺が枠線の場合は true、なしの場合は false、変更しない場合は null を指定します。'
+                      },
+                      vertical: {
+                        type: 'boolean',
+                        description:
+                          'レンジ内側の縦枠線は true、なしの場合は false、変更しない場合は null です。'
+                      },
+                      horizontal: {
+                        type: 'boolean',
+                        description:
+                          'レンジ内部の水平枠線は true、なしの場合は false、変更しない場合は null です。'
+                      },
+                      color: {
+                        type: 'string',
+                        description:
+                          "CSS 表記の色（'#ffffff' や 'white' など）。null はデフォルトの色（黒）を表します。"
+                      },
+                      style: {
+                        type: 'string',
+                        description: `枠線のスタイル。デフォルトのスタイル（単色）の場合は null。
 | スタイル | 説明 |
 | --- | --- |
 | DOTTED | 点線の枠線。|
@@ -208,52 +250,54 @@ ${'```json\n' + JSON.stringify(sheetStat.values) + '\n```'}
 | SOLID_THICK | 太い実線の枠線。|
 | DOUBLE | 2 本の実線の枠線。|
 `
+                      }
+                    },
+                    required: ['a1Notation']
+                  }
+                },
+                {
+                  name: 'setCustomBanding',
+                  description: 'bandingを作成しレンジへセットする',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      a1Notation: {
+                        type: 'string',
+                        description: 'レンジを A1 表記で指定する'
+                      },
+                      fisetRowColor: {
+                        type: 'string',
+                        description:
+                          "交互に表示する 1 行目の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する"
+                      },
+                      secondRowColor: {
+                        type: 'string',
+                        description:
+                          "交互に表示する 2 行目の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する"
+                      },
+                      headerRowColor: {
+                        type: 'string',
+                        description:
+                          "ヘッダー行の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する。指定しない場合は null を指定します。"
+                      },
+                      footerRowColor: {
+                        type: 'string',
+                        description:
+                          "最後の行の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する。指定しない場合は null を指定します。"
+                      }
+                    },
+                    required: ['a1Notation']
+                  }
                 }
-              },
-              required: ['a1Notation']
+              ]
             }
-          },
-          {
-            name: 'setCustomBanding',
-            description: 'bandingを作成しレンジへセットする',
-            parameters: {
-              type: 'object',
-              properties: {
-                a1Notation: {
-                  type: 'string',
-                  description: 'レンジを A1 表記で指定する'
-                },
-                fisetRowColor: {
-                  type: 'string',
-                  description:
-                    "交互に表示する 1 行目の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する"
-                },
-                secondRowColor: {
-                  type: 'string',
-                  description:
-                    "交互に表示する 2 行目の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する"
-                },
-                headerRowColor: {
-                  type: 'string',
-                  description:
-                    "ヘッダー行の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する。指定しない場合は null を指定します。"
-                },
-                footerRowColor: {
-                  type: 'string',
-                  description:
-                    "最後の行の色を CSS 表記の色（'#ffffff' や 'white' など）で指定する。指定しない場合は null を指定します。"
-                }
-              },
-              required: ['a1Notation']
-            }
-          }
-        ]
-      }
-    ]
+          ]
+        : []
   }
 }
 
 export function run(
+  imageUrl: string,
   prompt: string,
   activeSheet: GoogleAppsScript.Spreadsheet.Sheet
 ) {
@@ -296,9 +340,12 @@ export function run(
   }
   const apiKey =
     PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY')
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+  const url =
+    imageUrl === ''
+      ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+      : `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`
   const payload = JSON.stringify(
-    buildPrompt(prompt, {
+    buildPrompt(imageUrl, prompt, {
       name: activeSheet.getName(),
       activeCell,
       activeRanges,
