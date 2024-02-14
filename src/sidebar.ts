@@ -7,8 +7,19 @@ function showSidebarText_() {
   SpreadsheetApp.getUi().showSidebar(ui)
 }
 
-function doPrompt(msg: string): string {
-  return run(msg, SpreadsheetApp.getActiveSheet())
+function showSidebarMulti_() {
+  const ui = HtmlService.createHtmlOutputFromFile('build/sidebar-multi')
+    .setTitle('テストチャット(マルチモーダル)')
+    .setWidth(300)
+  SpreadsheetApp.getUi().showSidebar(ui)
 }
 
-export { showSidebarText_, doPrompt }
+function doPrompt(msg: string): string {
+  return run('', msg, SpreadsheetApp.getActiveSheet())
+}
+
+function doPromptMulti(imageUrl: string, msg: string): string {
+  return run(imageUrl, msg, SpreadsheetApp.getActiveSheet())
+}
+
+export { showSidebarText_, showSidebarMulti_, doPrompt, doPromptMulti }
