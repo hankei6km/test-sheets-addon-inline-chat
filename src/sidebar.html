@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      rel="stylesheet"
+      href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"
+    />
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+    <style>
+      .branding-below {
+        bottom: 56px;
+        top: 0;
+      }
+      .branding-text {
+        left: 7px;
+        position: relative;
+        top: 3px;
+      }
+      .col-contain {
+        overflow: hidden;
+      }
+      .col-one {
+        float: left;
+        width: 50%;
+      }
+      .logo {
+        vertical-align: middle;
+      }
+      .radio-spacer {
+        height: 20px;
+      }
+      .width-100 {
+        width: 100%;
+      }
+    </style>
+    <title></title>
+  </head>
+  <body>
+    <div class="sidebar branding-below">
+      <div class="block form-group">
+        <label for="prompt-textarea"> <b>プロンプト</b></label>
+        <textarea class="width-100" id="prompt-textarea" rows="15"></textarea>
+      </div>
+      <div class="block">
+        <button class="action" id="run-button" onclick="handleRun()">
+          Run
+        </button>
+        <button id="clear-button" onclick="handleClear()">Clear</button>
+      </div>
+      <div class="block form-group">
+        <label for="response-textarea"> <b>返答</b></label>
+        <textarea class="width-100" id="response-textarea" rows="15"></textarea>
+      </div>
+    </div>
+
+    <div class="sidebar bottom">
+      <span class="gray">アドオンの概要など</span>
+    </div>
+  </body>
+
+  <script>
+    function disableInputs() {
+      document.getElementById('prompt-textarea').disabled = true
+      document.getElementById('run-button').disabled = true
+      document.getElementById('clear-button').disabled = true
+    }
+    function enableInputs() {
+      document.getElementById('prompt-textarea').disabled = false
+      document.getElementById('run-button').disabled = false
+      document.getElementById('clear-button').disabled = false
+    }
+    function handleRun() {
+      disableInputs()
+      const promptText = document.getElementById('prompt-textarea').value
+      new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(function (responseText) {
+            const responseEl = document.getElementById('response-textarea')
+            responseEl.value = responseText
+            resolve()
+          })
+          .withFailureHandler(function (error) {
+            const responseEl = document.getElementById('response-textarea')
+            responseEl.value = error.message
+            // reject()
+            resolve()
+          })
+          .doPrompt(promptText)
+      }).then(() => {
+        enableInputs()
+      })
+    }
+    function handleClear() {
+      document.getElementById('prompt-textarea').value = ''
+      document.getElementById('response-textarea').value = ''
+    }
+  </script>
+</html>
