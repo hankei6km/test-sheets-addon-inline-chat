@@ -6,6 +6,13 @@ function normalizeA1Notation(a1Notaion: string): string {
   // シート名は削除される(対応は大変なので今回はスルーする
   return a1Notaion.replace(/[^A-Za-z0-9:]/g, '')
 }
+const formulaWhiteList = [
+  /^=([A-Za-z0-9:\+\-\*\ /])+$/,
+  /^=SUM\([A-Za-z0-9:,]+\)$/i
+]
+function isSafeFormulas(formula: string): boolean {
+  return formulaWhiteList.some((re) => re.test(formula))
+}
 function setValuesOrFormulas(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   a1Notaion: string,
@@ -40,7 +47,11 @@ function setValuesOrFormulas(
         typeof valuesOrFormulas[row][col] === 'string' &&
         valuesOrFormulas[row][col].startsWith('=')
       ) {
-        cell.setFormula(valuesOrFormulas[row][col])
+        if (isSafeFormulas(valuesOrFormulas[row][col])) {
+          cell.setFormula(valuesOrFormulas[row][col])
+        } else {
+          cell.setValue(`"${valuesOrFormulas[row][col]}"`)
+        }
       } else {
         if (
           valuesOrFormulas[row][col] === undefined ||
