@@ -115,6 +115,8 @@ function setBorder(
         return SpreadsheetApp.BorderStyle.SOLID_MEDIUM
       case 'SOLID_THICK':
         return SpreadsheetApp.BorderStyle.SOLID_THICK
+      case 'DOUBLE':
+        return SpreadsheetApp.BorderStyle.DOUBLE
       default:
     }
     return null
