@@ -2,6 +2,12 @@
 
 Google スプレッドシートに Gemini API を使ったチャットを埋め込む実験。
 
+![](docs/output.gif)
+
+> [!NOTE]
+>
+> この動画は 1.5 倍速で再生されています。
+
 ## 現状できていること
 
 [関数呼び出し](https://ai.google.dev/docs/function_calling?hl=ja)を利用して以下の操作が行える。
