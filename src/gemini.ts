@@ -195,7 +195,9 @@ ${prompt}}
                 },
                 {
                   name: 'setBorder',
-                  description: 'レンジの枠線を指定する。',
+                  description: `レンジの枠線を指定する。枠線は「罫線」とも呼ばれます。
+また、「合計線」と呼ばれる「罫線」もあります。
+「合計線」は、合計行の上に「2 本の実線の枠線」されている状態です。`,
                   parameters: {
                     type: 'object',
                     properties: {
@@ -248,7 +250,7 @@ ${prompt}}
 | SOLID | 細い実線の枠線。|
 | SOLID_MEDIUM | 中程度の実線の枠線。|
 | SOLID_THICK | 太い実線の枠線。|
-| DOUBLE | 2 本の実線の枠線。|
+| DOUBLE | 2 本の実線の枠線、または合計線。|
 `
                       }
                     },
