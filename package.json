@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf index.d.ts build/*",
+    "create": "clasp create --title 'test-sheets-inline-chat' --type sheets",
     "build": "npm run clean && bash scripts/build.sh",
     "preupload": "npm run build",
     "upload": "clasp push",
